@@ -135,7 +135,7 @@ def get_score_fn(sde, model, train=False, continuous=False):
     def score_fn(x, t):
       assert continuous
       # labels = t * 999
-      labels = t * 1  # TODO: TEST
+      labels = t * 1  # TODO: scaling the t's seems to hurt performance atm
       score = model_fn(x, labels)
       std = sde.marginal_prob(torch.zeros_like(x), t)[1]
 
@@ -198,7 +198,7 @@ def get_time_score_fn(sde, model, train=False, continuous=False):
     def score_fn(x, t):
       assert continuous
       # labels = t * 999
-      labels = t * 1  # TODO: TEST
+      labels = t * 1  # TODO: scaling the t's seems to hurt performance atm
       score = model_fn(x, labels)
 
       if isinstance(score, list) or isinstance(score, tuple):

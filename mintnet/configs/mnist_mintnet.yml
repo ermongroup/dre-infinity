@@ -1,0 +1,36 @@
+data:
+  channels: 1
+  dataset: MNIST
+  horizontal_flip: false
+  image_size: 28
+  lambda_logit: 0.000001
+  logit_transform: true
+
+model:
+  name: 'mintnet'
+  latent_size: 45
+  n_iters: 100 # for sampling
+  n_layers: 20
+  n_subsampling: 2
+  rgb_last: true
+  zero_init_start: 12
+
+training:
+  n_epochs: 600
+  batch_size: 32
+  log_interval: 100
+  snapshot_interval: 10
+  ema: false
+
+optim:
+  optimizer: Adam
+  lr: 0.001
+  beta1: 0.9
+  weight_decay: 0
+  amsgrad: true
+  adam_eps: 0.0001
+
+analysis:
+  newton_lr: 3.5
+
+

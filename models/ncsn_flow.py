@@ -8,12 +8,12 @@ from models.ncsn_unet import (
   Dense
 )
 
-# TODO: CHANGE THINGS BACK TO TIME-SCORE-DRE!!!!!!!!!!!!!!!!!!!!!
-sys.path.append('/atlas/u/kechoi/time-score-dre-original/nsf/')
+# need to import things from top-level directory for pretrained flow models
+top_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(top_path, 'nsf'))
 from nsf.nde import distributions, transforms, flows
 
-# TODO: get rid of hard-coding
-sys.path.append('/atlas/u/kechoi/time-score-dre-original/mintnet')
+sys.path.append(os.path.join(top_path, 'mintnet'))
 from mintnet.models.cnn_flow import DataParallelWithSampling
 from mintnet.models.cnn_flow import Net
 from mintnet.models.nice import NICE
@@ -56,17 +56,16 @@ def dict2namespace(config):
 def load_pretrained_flow(config, test=False):
   name = config.training.z_space_model
   print('loading flow model: {}'.format(name))
-  # TODO: get rid of hard-coding
-  config_path = '/atlas/u/kechoi/time-score-dre-original/mintnet/configs/'
+  config_path = os.path.join(top_path, 'mintnet', 'configs')
   if name in ['mintnet', 'nice']:
     if name == 'mintnet':
       config_path = os.path.join(config_path, 'mnist_mintnet.yml')
       model_cls = Net
-      ckpt_path = '/atlas/u/kechoi/time-score-dre-original/flow_ckpts/mintnet_checkpoint.pth'
+      ckpt_path = os.path.join(top_path, 'flow_ckpts', 'mintnet_checkpoint.pth')
     else:
       config_path = os.path.join(config_path, 'mnist_nice.yml')
       model_cls = NICE
-      ckpt_path = '/atlas/u/kechoi/time-score-dre-original/flow_ckpts/bs32_nice_checkpoint.pth'
+      ckpt_path = os.path.join(top_path, 'flow_ckpts', 'bs32_nice_checkpoint.pth')
     print('loading model from checkpoint: {}'.format(ckpt_path))
     logging.info('loading model from checkpoint: {}'.format(ckpt_path))
     with open(os.path.join('configs', config_path), 'r') as f:
@@ -91,8 +90,7 @@ def load_pretrained_flow(config, test=False):
     states = torch.load(ckpt_path, map_location=new_config.device)
     net.load_state_dict(states[0])
   elif name == 'rq_nsf':
-    # ckpt_path = '/atlas/u/kechoi/time-score-dre-original/nsf/runs/images/finished_training/mnist-8-bit-1/flow_early_stop.pt'
-    ckpt_path = '/atlas/u/kechoi/time-score-dre-original/flow_ckpts/rq_nsf_best.pt'
+    ckpt_path = os.path.join(top_path, 'flow_ckpts', 'rq_nsf_best.pt')
     print('loading model from checkpoint: {}'.format(ckpt_path))
 
     # annoying data transforms
@@ -126,19 +124,17 @@ def load_pretrained_flow(config, test=False):
   elif name == 'rq_nsf_copula':
     import pickle
     from nsf.experiments.images_centering_copula import create_transform
-
-    # ckpt_path = '/atlas/u/kechoi/time-score-dre-original/nsf/runs/images/mnist-8-bit-10/flow_best.pt'
-    ckpt_path = '/atlas/u/kechoi/time-score-dre-original/flow_ckpts/copula_best.pt'
+    ckpt_path = os.path.join(top_path, 'flow_ckpts', 'copula_best.pt')
     print('loading model from checkpoint: {}'.format(ckpt_path))
 
     # load data stats, no need to load a separate checkpoint
     if not test:
-      with open('/atlas/u/kechoi/time-score-dre-original/nsf/runs/images/mnist-8-bit-10/data_means.p', 'rb') as fp:
+      with open(os.path.join(top_path, 'flow_ckpts', 'data_means.p'), 'rb') as fp:
           data_stats = pickle.load(fp)
       val_mean = data_stats['val_mean']
     else:  # val_mean = test_mean here
       print('loading test statistics for flow evaluation!')
-      with open('/atlas/u/kechoi/time-score-dre-original/nsf/runs/images/mnist-8-bit-10/test_data_means.p', 'rb') as fp:
+      with open(os.path.join(top_path, 'flow_ckpts', 'test_data_means.p'), 'rb') as fp:
           data_stats = pickle.load(fp)
       val_mean = data_stats['test_mean']
 
@@ -146,10 +142,11 @@ def load_pretrained_flow(config, test=False):
     train_mean = data_stats['train_mean']
     train_std = data_stats['train_std']
 
+    # doesn't matter, can just get it from the data_stats object
     # from torchvision.datasets import MNIST
     # from datasets import logit_transform
     # import torchvision
-    # data_dir = '/atlas/u/kechoi/time-score-dre-original/'
+    # data_dir = '/atlas/u/kechoi/time-score-dre/'
     # test_transform = torchvision.transforms.Compose([
     #   torchvision.transforms.Resize(config.data.image_size),
     #   torchvision.transforms.ToTensor()
@@ -162,7 +159,7 @@ def load_pretrained_flow(config, test=False):
     # # dequantize
     # data = (data + torch.rand_like(data)) / 256.
     # data = logit_transform(data)
-    # val_mean = data.mean(0)  # lol will this make a diff? no
+    # val_mean = data.mean(0)  # lol will this make a diff? (no)
 
     # annoying data transforms
     c = 1
@@ -205,7 +202,7 @@ def load_pretrained_flow(config, test=False):
     from nsf.experiments.images_noise import create_transform
 
     # load data stats, no need to load a separate checkpoint
-    with open('/atlas/u/kechoi/time-score-dre-original/nsf/runs/images/noise/test_data_stats.p', 'rb') as fp:
+    with open(os.path.join(top_path, 'flow_ckpts', 'test_data_stats.p'), 'rb') as fp:
         data_stats = pickle.load(fp)
 
     train_mean = data_stats['train_mean'].to('cuda')
@@ -278,7 +275,7 @@ class NCSNMLP(nn.Module):
 
 
 @utils.register_model(name='ncsn_mlpv2')
-class NCSNMLP(nn.Module):
+class NCSNMLPv2(nn.Module):
   """
   Simple MLP-based score network. This model is intended for
   toy Gaussian problems and pre-encoded data (e.g. via a flow).

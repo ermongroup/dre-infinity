@@ -1,0 +1,12 @@
+# train NICE model on MNIST
+(h_dim = 1000)
+CUDA_VISIBLE_DEVICES=0 python3 main.py --runner DensityEstimationRunner \
+ --config mnist_nice.yml --doc mnist_nice
+
+(h_dim = 200, batch_size = 256)
+CUDA_VISIBLE_DEVICES=1 python3 main.py --runner DensityEstimationRunner \
+ --config mnist_nice.yml --doc mnist_nice_final
+
+(h_dim = 200, batch_size = 32)
+CUDA_VISIBLE_DEVICES=0 python3 main.py --runner DensityEstimationRunner \
+ --config mnist_nice2.yml --doc mnist_nice_final_bs32

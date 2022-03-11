@@ -28,3 +28,4 @@ skimage==0.0
 tensorboardX==2.5
 tensorflow==2.8.0
 torchtestcase==2018.2
+wandb==0.12.10

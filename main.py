@@ -8,11 +8,6 @@ import os
 import tensorflow as tf
 import wandb
 
-WANDB = {
-  'kechoi': 'kristychoi',
-  'chenlin': 'chenlin9'
-}
-
 FLAGS = flags.FLAGS
 
 config_flags.DEFINE_config_file(
@@ -34,11 +29,10 @@ def main(argv):
     mode = 'disabled'
   # set up wandb
   wandb.init(
-    project='iclr-time-score-dre',
-    entity='iclr-time-score-dre',
+    project='your-project-here',
+    entity='your-project-here',
     name=FLAGS.doc,
-    mode='disabled'
-    # mode=mode
+    mode=mode
   )
   
   if FLAGS.mode == "train":
