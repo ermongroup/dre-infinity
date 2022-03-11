@@ -6,7 +6,7 @@ This repo contains a reference implementation for DRE-\infty as described in the
 > International Conference on Artificial Intelligence and Statistics (AISTATS), 2022. [ORAL] </br>
 > Paper: https://arxiv.org/abs/2111.11010 </br>
 
-The code structure is a direct extension of: https://github.com/yang-song/score_sde_pytorch
+Note that the code structure is a direct extension of: https://github.com/yang-song/score_sde_pytorch
 
 
 ## Environment setup:
@@ -47,7 +47,8 @@ python3 main.py --toy  \
 For 80-D, we set `config.data.dim=80`, `config.training.n_iters=50001`, `config.training.eval_freq=5000`. For 160-D, we set `config.data.dim=160`, `config.training.eval_freq=5000`, and `config.training.n_iters=200001`. For 320-D, we set `config.data.dim=320`, `config.training.eval_freq=8000`, `config.training.batch_size=256`, and `config.training.n_iters=400001`.
 
 
-## For the MNIST experiment, we use the `nsf` codebase to train the flow models. All pre-trained model checkpoints (Gaussian, Copula, RQ-NSF) can be found in `flow_ckpts/`.
+## For the MNIST experiments:
+First, we use the `nsf` codebase to train the flow models. All pre-trained model checkpoints (Gaussian, Copula, RQ-NSF) can be found in `flow_ckpts/`.
 
 (a) For the Gaussian noise model:
 ```
