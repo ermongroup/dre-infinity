@@ -10,7 +10,7 @@ The code structure is a direct extension of: https://github.com/yang-song/score_
 
 
 ## Environment setup:
-(a) Necessary packages can be found in `src/requirements.txt`.
+(a) Necessary packages can be found in `requirements.txt`.
 
 (b) Set the correct Python path using the following command:
 ```
@@ -22,17 +22,17 @@ To train a time score network with the time-score matching loss *only*, run:
 ```
 python3 main.py --toy --config configs/1d_gaussians/time/param.py --mode=train \
 --doc=1d_peaked_gaussians_param_time \
- --workdir=./results/1d_peaked_gaussians_param_time/
+--workdir=./results/1d_peaked_gaussians_param_time/
  ```
 
  To train a joint score network with both the time and data scores, run: 
  ```
  python3 main.py --toy --config configs/1d_gaussians/joint/param.py --mode=train \
 --doc=1d_peaked_gaussians_param_joint \
-  --workdir=./results/1d_peaked_gaussians_param_joint/
+--workdir=./results/1d_peaked_gaussians_param_joint/
 ```
 
-## For the mutual information (MI) estimation experiments using the joint score matching objective:
+## For the MI estimation experiments using the joint score matching objective:
 (40-D)
 ```
 python3 main.py --toy  \
@@ -52,7 +52,7 @@ For 80-D, we set `config.data.dim=80`, `config.training.n_iters=50001`, `config.
 (a) For the Gaussian noise model:
 ```
 python3 main.py --flow \
-  --config configs/mnist/z_gaussian_time_interpolate.py \
+--config configs/mnist/z_gaussian_time_interpolate.py \
 --mode=train --doc=hyp_interp_z_unetv4_lin_emb_noise_history_lr0.001_gc10.0 \
 --workdir=./results/mnist/hyp_interp_z_unetv4_lin_emb_noise_history_lr0.001_gc10.0_test
 ```
@@ -60,7 +60,7 @@ python3 main.py --flow \
 (b) For the copula:
 ```
 python3 main.py --flow \
-  --config configs/mnist/z_copula_time_interpolate.py \
+--config configs/mnist/z_copula_time_interpolate.py \
 --mode=train --doc=hyp_interp_z_unetv4_lin_emb_copula_history_v4_lr0.001_gc1.0_test \
 --config.training.likelihood_weighting=True \
 --workdir=./results/mnist/hyp_interp_z_unetv4_lin_emb_copula_history_v4_lr0.001_gc1.0_test
@@ -69,7 +69,7 @@ python3 main.py --flow \
 (c) For the RQ-NSF flow model:
 ```
 python3 main.py --flow \
-  --config configs/mnist/z_flow_time_interpolate.py \
+--config configs/mnist/z_flow_time_interpolate.py \
 --mode=train --doc=z_unet_deeper_lin_emb_flow_history_fix_act_v4_nohistory_test \
 --config.training.likelihood_weighting=True \
 --workdir=./results/mnist/z_unet_deeper_lin_emb_flow_history_fix_act_v4_nohistory_test
