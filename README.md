@@ -1,6 +1,6 @@
 # Density Ratio Estimation via Infinitesimal Classification
 
-This repo contains a reference implementation for DRE-\infty as described in the paper:
+This repo contains a reference implementation for DRE-<img src="https://render.githubusercontent.com/render/math?math=\infty"> as described in the paper:
 > Density Ratio Estimation via Infinitesimal Classification </br>
 > [Kristy Choi*](http://kristychoi.com/), [Chenlin Meng*](https://cs.stanford.edu/~chenlin/), [Yang Song](https://yang-song.github.io/), [Stefano Ermon](https://cs.stanford.edu/~ermon/) </br>
 > International Conference on Artificial Intelligence and Statistics (AISTATS), 2022. [ORAL] </br>
@@ -15,9 +15,8 @@ Note that the code structure is a direct extension of: https://github.com/yang-s
 (b) Set the correct Python path using the following command:
 ```
 source init_env.sh
-
-(c) Note that we use `wandb` for keeping track of train/test statistics. You will have to set up wandb in the `main.py` file.
 ```
+(c) Note that we use `wandb` for keeping track of train/test statistics. You will have to set up wandb in the `main.py` file.
 
 ## For the 1-D peaked Gaussian experiments:
 To train a time score network with the time-score matching loss *only*, run:
@@ -46,7 +45,11 @@ python3 main.py --toy  \
   --config.training.batch_size=512 --config.training.eval_freq=2000 \
   --config.training.reweight=True
 ```
-For 80-D, we set `config.data.dim=80`, `config.training.n_iters=50001`, `config.training.eval_freq=5000`. For 160-D, we set `config.data.dim=160`, `config.training.eval_freq=5000`, and `config.training.n_iters=200001`. For 320-D, we set `config.data.dim=320`, `config.training.eval_freq=8000`, `config.training.batch_size=256`, and `config.training.n_iters=400001`.
+For 80-D, we set `config.data.dim=80`, `config.training.n_iters=50001`, `config.training.eval_freq=5000`. 
+
+For 160-D, we set `config.data.dim=160`, `config.training.eval_freq=5000`, and `config.training.n_iters=200001`. 
+
+For 320-D, we set `config.data.dim=320`, `config.training.eval_freq=8000`, `config.training.batch_size=256`, and `config.training.n_iters=400001`.
 
 
 ## For the MNIST experiments:
