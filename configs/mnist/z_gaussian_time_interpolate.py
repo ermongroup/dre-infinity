@@ -51,7 +51,7 @@ def get_config():
 
   # model
   model = config.model
-  model.name = 'ncsn_unet_t'
+  model.name = 'ncsnunet_t'
   model.n_hidden_layers = 2
   model.h_dim = 256
   model.nonlinearity = 'swish'

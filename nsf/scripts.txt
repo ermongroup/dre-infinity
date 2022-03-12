@@ -1,0 +1,70 @@
+source init_env.sh
+export DATAROOT=/atlas/u/kechoi/datasets/
+
+source /afs/cs.stanford.edu/u/kechoi/.bashrc.user
+
+(ref: https://github
+.com/hmdolatabadi/LRS_NF/blob/975bbdb501192476aa75ad72f9c91fe8ea889d1b/experiments/images_data.py)
+
+
+#############################
+Train RQ-NSF flow model
+just do the usual, no mean-centering: (mnist-8-bit): 1.119
+(mnist-8-bit-1)
+1178292 trainable parameters here
+
+CUDA_VISIBLE_DEVICES=0 python3 experiments/images.py with \
+experiments/image_configs/mnist-8bit-noresnet.json
+
+CUDA_VISIBLE_DEVICES=1 python3 experiments/images.py eval_on_test \
+with experiments/image_configs/mnist-8bit-noresnet.json
+
+(mnist-8-bit-1)
+Test log probability (bits/dim): -1.1203 +/- 0.0001
+CUDA_VISIBLE_DEVICES=0 python3 experiments/images_early_stop.py eval_on_test \
+with experiments/image_configs/mnist-8bit-noresnet.json
+
+
+
+###############################
+(This is the Gaussian noise)
+(8/25/21): Train noise: Test log probability (bits/dim): -2.01
+# NOTE: there is no actual training going on here! we directly fit the flow via
+np.cov as in the TRE setup
+CUDA_VISIBLE_DEVICES=0 python3 experiments/images_noise.py eval_on_test \
+with experiments/image_configs/mnist-8bit-noise.json
+(YAS)
+
+
+################################
+(train copula)
+mnist-8bit-8
+CUDA_VISIBLE_DEVICES=0 python3 experiments/images_centering_copula.py \
+with experiments/image_configs/mnist-copula-recent.json
+
+----> (try testing this config?)
+    CUDA_VISIBLE_DEVICES=0 python3 experiments/images_centering_copula.py eval_on_test \
+    with experiments/image_configs/mnist-copula-recent.json
+    Test log probability (bits/dim):
+(relaunched on slurm: mnist-8-bit-4: THIS IS THE ONE WE LIKE!)
+
+(slurm: mnit-8-bit-5, this was lr=1e-4)
+    CUDA_VISIBLE_DEVICES=0 python3 experiments/images_centering_copula.py eval_on_test \
+    with experiments/image_configs/mnist-8bit-copula.json
+    -1.49 with smaller learning rate
+
+
+###############
+(try evaluating the newly trained copulas): this is the best one
+# saved in: mnist-8-bit-10
+(you get this number if you set the seed to 7777 and load from test_data_means
+.p. Otherwise you get ~1.4471 lol)
+    CUDA_VISIBLE_DEVICES=1 python3 experiments/images_centering_copula.py eval_on_test \
+    with experiments/image_configs/copula/0.json
+    Test log probability (bits/dim): -1.4462
+
+1: -1.4506
+2: -1.4471
+3: -1.4563
+4: -1.4550
+5: -1.4547

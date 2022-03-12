@@ -15,6 +15,8 @@ Note that the code structure is a direct extension of: https://github.com/yang-s
 (b) Set the correct Python path using the following command:
 ```
 source init_env.sh
+
+(c) Note that we use `wandb` for keeping track of train/test statistics. You will have to set up wandb in the `main.py` file.
 ```
 
 ## For the 1-D peaked Gaussian experiments:
@@ -48,33 +50,35 @@ For 80-D, we set `config.data.dim=80`, `config.training.n_iters=50001`, `config.
 
 
 ## For the MNIST experiments:
-First, we use the `nsf` codebase to train the flow models. All pre-trained model checkpoints (Gaussian, Copula, RQ-NSF) can be found in `flow_ckpts/`.
+First, we use the `nsf` codebase to train the flow models. All pre-trained model checkpoints (Gaussian, Copula, RQ-NSF) can be found in `flow_ckpts/`. There is no need to re-train the flow models from scratch and all the time score networks take into account the particular ways that the data has been preprocessed.
 
 (a) For the Gaussian noise model:
 ```
 python3 main.py --flow \
 --config configs/mnist/z_gaussian_time_interpolate.py \
---mode=train --doc=hyp_interp_z_unetv4_lin_emb_noise_history_lr0.001_gc10.0 \
---workdir=./results/mnist/hyp_interp_z_unetv4_lin_emb_noise_history_lr0.001_gc10.0_test
+--mode=train --doc=z_unet_lin_emb_noise \
+--workdir=./results/mnist_z_unet_lin_emb_noise
 ```
 
 (b) For the copula:
 ```
 python3 main.py --flow \
 --config configs/mnist/z_copula_time_interpolate.py \
---mode=train --doc=hyp_interp_z_unetv4_lin_emb_copula_history_v4_lr0.001_gc1.0_test \
+--mode=train --doc=z_unet_lin_emb_copula \
 --config.training.likelihood_weighting=True \
---workdir=./results/mnist/hyp_interp_z_unetv4_lin_emb_copula_history_v4_lr0.001_gc1.0_test
+--workdir=./results/mnist_z_unet_lin_emb_copula
 ```
 
 (c) For the RQ-NSF flow model:
 ```
 python3 main.py --flow \
 --config configs/mnist/z_flow_time_interpolate.py \
---mode=train --doc=z_unet_deeper_lin_emb_flow_history_fix_act_v4_nohistory_test \
+--mode=train --doc=z_unet_lin_emb_flow \
 --config.training.likelihood_weighting=True \
---workdir=./results/mnist/z_unet_deeper_lin_emb_flow_history_fix_act_v4_nohistory_test
+--workdir=./results/mnist_z_unet_lin_emb_flow
 ```
+
+## PENDING: evaluation code for AIS
 
 
 ## References

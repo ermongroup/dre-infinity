@@ -46,6 +46,7 @@ def get_density_ratio_fn(sde, inverse_scaler, rtol=1e-6,
                          atol=1e-6, method='RK45', eps=1e-5):
   """Create a function to compute the density ratios of a given point.
   NOTE: this is the one that's being used for the DDPM noise schedule!
+  this function is not actually used in the code.
   """
 
   def ratio_fn(score_model, x):
@@ -96,100 +97,6 @@ def get_density_ratio_fn(sde, inverse_scaler, rtol=1e-6,
       # offset = 8.
       bpd = bpd + offset  # (batch_size, )
       return bpd, density_ratio, nfe
-
-  return ratio_fn
-
-
-def get_density_ratio_fn_ais(sde, inverse_scaler, n_ais_steps, n_ais_samples,
-                             fancy=False,
-                             rtol=1e-6, atol=1e-6, method='RK45', eps=1e-5,
-                             mlp=False, flow_name=None):
-  """
-  Computes density ratios using time scores, but with the normalizing constant
-  estimated via AIS. Note that this function is pretty slow.
-  TODO: make this into a more general function that will work for any density
-  ratio estimation function
-  :param sde:
-  :param inverse_scaler:
-  :param rtol:
-  :param atol:
-  :param method:
-  :param eps:
-  :return:
-  """
-
-  def ratio_fn(flow, score_model, x, log_normalizer=0.):
-    def ode_func(t, y, x, score_model):
-      n = x.size(0)
-      score_fn = mutils.get_time_score_fn(sde, score_model, train=False,
-                                          continuous=True)
-
-      t = (torch.ones(x.size(0)) * t).to(x.device)
-      t = t.detach()
-      x = x.to(x.device)
-      # mlp network specific
-      # rx = score_fn(x.view(n, -1), t)  # get timewise-scores only
-      rx = score_fn(x, t)
-      rx = np.reshape(rx.detach().cpu().numpy(), -1)
-
-      return rx
-
-    # TODO: then you'd have to compute this in z-space as well?
-    with torch.no_grad():
-      # now just a function of t
-      x_input = x.view(x.size(0), -1) if mlp else x
-
-      if not fancy:  # transform to z-space
-        # eval is currently happening in z-space
-        x_input = (x_input + 1.) / 2.
-        x_input = x_input * 256.
-        # TODO: fix for RQ-NSF vs {noise, copula}
-        # x_input = flow.module.transform_to_noise(x_input, context=None, transform=True, train=False)
-        x_input = flow.module.transform_to_noise(x_input, context=None)
-        x_input = x_input.view(x.size())
-        # otherwise if using fancy prior, AIS computation happens in x-space
-
-      p_get_rx = partial(ode_func, x=x_input, score_model=score_model)
-      # TODO: flipped (eps, 1) for DDPM noise
-      solution = integrate.solve_ivp(p_get_rx, (1., eps),
-                                     np.zeros((x.shape[0],)) + eps,
-                                     method=method, rtol=rtol, atol=atol)
-      nfe = solution.nfev
-      density_ratio = solution.y[:, -1]
-      print("ratio computation took {} function evaluations.".format(nfe))
-
-      # compute "approximate" bpds. corresponds to DIRECT method in TRE paper
-      # (https://arxiv.org/pdf/2006.12204.pdf page 8)
-      shape = x.shape
-      N = np.prod(shape[1:])
-
-      log_qp = density_ratio
-      # x will be transformed again by the flow
-      log_p = sde.prior_logp(flow, x).cpu().detach().numpy()
-      assert log_qp.shape == log_p.shape
-
-      # for actual bpd evaluation
-      log_q = (log_qp + log_p)
-
-      print(log_qp[0:10])
-      print(log_p[0:10])
-      print('log_qp: {}'.format(log_qp.mean()))
-      print('log_p: {}'.format(log_p.mean()))
-
-    # this will return a single scalar
-    bpd = -(log_q.sum() - log_normalizer.sum().item()) / (
-          np.log(2) * np.prod(shape))
-    usual_bpd = -(log_q.sum()) / (np.log(2) * np.prod(shape))
-
-    # A hack to convert log-likelihoods to bits/dim
-    offset = 7. - inverse_scaler(-1.)
-    bpd = bpd + offset  # (batch_size, ) --> # (,)
-
-    print('bpd: {}'.format(bpd))
-    print('bpd without log Z: {}'.format(usual_bpd + 7.))
-    # import pdb
-    # pdb.set_trace()
-    return bpd, density_ratio, nfe
 
   return ratio_fn
 
@@ -257,76 +164,13 @@ def get_density_ratio_fn_flow(sde, inverse_scaler, rtol=1e-6,
   return ratio_fn
 
 
-def get_interp_density_ratio_fn_flow(sde, inverse_scaler, rtol=1e-6,
-                         atol=1e-6, method='RK45', eps=1e-5):
-  """Create a function to compute the density ratios of a given point.
-  NOTE: this is the one that's being used for the DDPM noise schedule!
-  TODO: we are using this function to evaluate q(x) = MNIST, p(x) = flow trained on MNIST
-  """
-
-  def ratio_fn(score_model, flow, x, log_det_logit, centered):
-    with torch.no_grad():
-      def ode_func(t, y, x, score_model):
-        score_fn = mutils.get_time_score_fn(sde, score_model, train=False, continuous=True)
-
-        n = x.size(0)
-        t = (torch.ones(n) * t).to(x.device)
-        t = t.detach()
-        x = x.to(x.device)
-        rx = score_fn(x.view(n, -1), t)  # get timewise-scores only
-        rx = np.reshape(rx.detach().cpu().numpy(), -1)
-
-        return rx
-
-      # now just a function of t
-      p_get_rx = partial(ode_func, x=x, score_model=score_model)
-      # TODO: flipped (eps, 1) for DDPM noise
-      solution = integrate.solve_ivp(p_get_rx, (1., eps),
-                                     np.zeros((x.shape[0],)) + eps,
-                                     method=method, rtol=rtol, atol=atol)
-      nfe = solution.nfev
-      density_ratio = solution.y[:, -1]
-      print("ratio computation took {} function evaluations.".format(nfe))
-
-      # compute "approximate" bpds. corresponds to DIRECT method in TRE paper
-      # (https://arxiv.org/pdf/2006.12204.pdf page 8)
-      shape = x.shape
-      N = np.prod(shape[1:])
-
-      log_qp = density_ratio
-      log_p = sde.prior_logp(flow, x).cpu().detach().numpy()
-      assert log_qp.shape == log_p.shape
-
-      # for actual bpd evaluation
-      log_q = (log_qp + log_p)
-
-      print(log_qp[0:10])
-      print(log_p[0:10])
-      print('log_qp: {}'.format(log_qp.mean()))
-      print('log_p: {}'.format(log_p.mean()))
-
-      bpd = (-log_q.sum() - log_det_logit.sum()) / (np.log(2) * np.prod(shape))
-      # TODO: is the offset still 7? or 8?
-      # maybe it is 8? since +7 only gives 0.32 bpd
-      # if centered:  # True by default, since we're rescaling to [-1, 1]
-      #   offset = 7.
-      # else:
-      #   offset = 8.
-      offset = 8.
-      bpd = bpd + offset  # (1,)
-      return bpd, density_ratio, nfe
-
-  return ratio_fn
-
-
 def get_z_interp_density_ratio_fn_flow(sde, inverse_scaler, mlp=False, rtol=1e-6,
                          atol=1e-6, method='RK45', eps=1e-5):
   """Create a function to compute the density ratios of a given point.
   NOTE: this is the one that's being used for the DDPM noise schedule!
   TODO: we are using this function to evaluate q(x) = MNIST, p(x) = flow trained on MNIST
   """
-  print('I am in the correct DRE function!')
-
+  # print('I am in the correct DRE function!')
   def ratio_fn(score_model, flow, x):
     with torch.no_grad():
       def ode_func(t, y, x, score_model):
@@ -478,60 +322,6 @@ def get_pathwise_density_ratio_fn(sde, inverse_scaler, rtol=1e-5, atol=1e-5,
       bpd = bpd / N
       # A hack to convert log-likelihoods to bits/dim
       offset = 7. - inverse_scaler(-1.)
-      bpd = bpd + offset
-      return bpd, density_ratio, nfe
-
-  return ratio_fn
-
-
-def get_interp_density_ratio_fn(sde, inverse_scaler, rtol=1e-6, atol=1e-6,
-                                method='RK45', eps=1e-5):
-  """Create a function to compute the density ratios of a given point.
-  """
-
-  def ratio_fn(score_model, x):
-    with torch.no_grad():
-      def ode_func(t, y, x, score_model):
-        time_score_fn = mutils.get_time_score_fn(sde, score_model, train=False,
-                                                 continuous=True)
-
-        t = (torch.ones(x.size(0)) * t).to(x.device)
-        x = x.to(x.device)
-        rx = time_score_fn(x, t)  # get timewise-scores only
-        rx = np.reshape(rx.detach().cpu().numpy(), -1)
-
-        return rx
-
-      # now just a function of t
-      p_get_rx = partial(ode_func, x=x, score_model=score_model)
-      solution = integrate.solve_ivp(p_get_rx, (0, 1-eps),
-                                     np.zeros((x.shape[0],)),
-                                     method=method, rtol=rtol, atol=atol)
-      nfe = solution.nfev
-      density_ratio = solution.y[:, -1]
-      print("ratio computation took {} function evaluations.".format(nfe))
-
-      # compute "approximate" bpds. corresponds to DIRECT method in TRE paper
-      # (https://arxiv.org/pdf/2006.12204.pdf page 8)
-      shape = x.shape
-      N = np.prod(shape[1:])
-
-      log_qp = density_ratio
-      log_p = sde.prior_logp(x).cpu().detach().numpy()
-      assert log_qp.shape == log_p.shape
-      log_q = (log_qp + log_p)
-
-      print(log_qp[0:10])
-      print(log_p[0:10])
-      print('log_qp: {}'.format(log_qp.mean()))
-      print('log_p: {}'.format(log_p.mean()))
-
-      # compute bpd
-      bpd = -log_q / np.log(2)
-      bpd = bpd / N
-      # A hack to convert log-likelihoods to bits/dim
-      offset = 7. - inverse_scaler(-1.)
-      # offset = 8.  # no scaling from [-1, 1]
       bpd = bpd + offset
       return bpd, density_ratio, nfe
 

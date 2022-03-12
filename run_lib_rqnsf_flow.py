@@ -33,8 +33,8 @@ FLAGS = flags.FLAGS
 
 # first, load some flow-specific code
 import sys
-# TODO: CHANGE THE NAME BACK TO TIME-SCORE-DRE!!!!!!!!!
-sys.path.append('/atlas/u/kechoi/time-score-dre-original/nsf/')
+top_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(top_path, 'nsf'))
 
 
 def train(config, workdir):
@@ -204,10 +204,6 @@ def train(config, workdir):
     density_ratio_fn_pathwise = density_ratios.get_z_interp_pathwise_density_ratio_fn(sde,
                                                                         inverse_scaler,
                                                                         eps=train_eps)
-    # else:
-    #   density_ratio_fn_pathwise = density_ratios.get_pathwise_density_ratio_fn(sde,
-    #                                                                inverse_scaler,
-    #                                                                eps=train_eps)
 
   # Building sampling functions
   if config.training.snapshot_sampling:
@@ -492,62 +488,11 @@ def evaluate(config,
             sde,
             inverse_scaler)
         else:
-          fancy = config.eval.ais_fancy_prior
-          n_ais_steps = config.eval.ais_steps
-          n_ais_samples = config.eval.ais_samples
-          ais_method = config.eval.ais_method
-          mlp = True if 'mlp' in config.model.name else False
-          flow_name = config.training.z_space_model
-          assert config.training.z_interpolate
-          print('using AIS for bpd computation!')
-          density_ratio_fn = density_ratios.get_density_ratio_fn_ais(sde,
-                                                                     inverse_scaler,
-                                                                     n_ais_steps,
-                                                                     n_ais_samples,
-                                                                     fancy=fancy,
-                                                                     mlp=mlp,
-                                                                     flow_name=flow_name)
-          if not fancy:
-            print('running AIS in z-space with N(0,I) prior!')
-            # print('WARNING: THIS DOES NOT WORK WELL, WHY ARE YOU USING THIS')
-            # raise NotImplementedError
-            ais_fn = ais.run_ais(sde, inverse_scaler, n_ais_steps,
-                                            n_ais_samples, mlp=mlp,
-                                            flow_name=flow_name)
-          else:
-            print('running AIS in x-space with fancy prior!')
-            print('running AIS version: {}'.format(ais_method))
-
-            # this is annoying, but we need to initialize RAISE with a data point.
-            # maybe we can use a validation set batch. getting it from the test
-            # set seems sketch
-            
-            # _, valid_ds = datasets.get_dataset_for_flow(config)
-            # for i, (x0, _) in enumerate(valid_ds):
-            #   x0 = ((x0 * 255.) + torch.rand_like(x0)) / 256.
-            #   x0 = scaler(x0).to(config.device)
-            #   break
-            # del valid_ds
-
-            # TODO: HACK HACK HACK SO UGLY!!
-            if ais_method == 'raise':
-              x0 = torch.load('/atlas/u/kechoi/time-score-dre/x0.pth').to(config.device)
-              print('obtained initial x0 from validation set @__@')
-            else:
-              x0 = None
-
-            ais_fn = ais.run_fancy_ais(sde, inverse_scaler, n_ais_steps,
-                                       n_ais_samples, mlp=mlp,
-                                       flow_name=flow_name,
-                                       ais_method=ais_method,
-                                       x0=x0)
+          # TODO: complete AIS density ratio evaluation
+          raise NotImplementedError
     if config.training.dre_bpd_v2:
-      # if config.training.sde.lower() in ['interpxt', 'flow_interpxt']:
       density_ratio_fn_v2 = density_ratios.get_z_interp_pathwise_density_ratio_fn(sde,
                                                                             inverse_scaler)
-      # else:
-      #   density_ratio_fn_v2 = density_ratios.get_pathwise_density_ratio_fn(sde,
-      #                                                                inverse_scaler)
 
   # Build the sampling function when sampling is enabled
   if config.eval.enable_sampling:
@@ -626,40 +571,13 @@ def evaluate(config,
                       'init_z': init_z.detach().cpu().numpy(),
                      'w': w.detach().cpu().numpy(),
                       'log_normalizer': log_normalizer.detach().cpu().numpy()}
-          # TODO: you already have these saved, so you'll have to give it a different name
-          # maybe like ais v2
-          import pdb
-          pdb.set_trace()
           save_image(ais_x.detach().cpu(), os.path.join(eval_dir, 'ais_samples_{}chains_{}steps.png'.format(n_ais_samples, n_ais_steps)))
-          # not sure why not working on atlas-ws-9
-          np.savez(os.path.join(eval_dir, '1012xspace_ais_x_{}_ckpt_{}_output'.format(ais_method, ckpt)), **ais_dict)
+          np.savez(os.path.join(eval_dir, 'ais_x_{}_ckpt_{}_output'.format(ais_method, ckpt)), **ais_dict)
           print('finished running {} for estimating log partition function!'.format(ais_method))
           print('exiting program...')
           import sys
           sys.exit(0)
-        # TODO: trying this on ws-9, not sure what paths aren't working
-        # fpath = '/atlas/u/kechoi/time-score-dre/results/iclr/mnist/hyp_interp_z_unetv4_lin_emb_noise_history_lr0.001_gc10.0/eval/ais_x_ais_ckpt_171_output.npz'
-        # fpath = '/atlas/u/kechoi/time-score-dre/results/iclr/mnist/z_unet_deeper_lin_emb_flow_history_fix_act_v4_nohistory/eval/ais_ckpt_69_output.npz'
-        # fpath = '/atlas/u/kechoi/time-score-dre/results/iclr/mnist/z_unet_deeper_lin_emb_flow_history_fix_act_v4_nohistory/eval/fancy_x_ais_ckpt_69_output.npz'
-
-        # AIS files
-        # gaussian
-        # fpath = '/atlas/u/kechoi/time-score-dre/results/iclr/mnist/hyp_interp_z_unetv4_lin_emb_noise_history_lr0.001_gc10.0/eval/1010rerun_ais_x_ais_ckpt_171_output.npz'
-        # copula
-        # fpath = '/atlas/u/kechoi/time-score-dre/results/iclr/mnist/hyp_interp_z_unetv4_lin_emb_copula_history_v4_lr0.001_gc1.0/eval/1010rerun_ais_x_ais_ckpt_110_output.npz'
-        # flow
-        # fpath = '/atlas/u/kechoi/time-score-dre/results/iclr/mnist/z_unet_deeper_lin_emb_flow_history_fix_act_v4_nohistory/eval/1010rerun_ais_x_ais_ckpt_69_output.npz'
-
-        # RAISE files
-        # gaussian
-        # fpath = '/atlas/u/kechoi/time-score-dre/results/iclr/mnist/hyp_interp_z_unetv4_lin_emb_noise_history_lr0.001_gc10.0/eval/1010rerun_ais_x_raise_ckpt_171_output.npz'
-        # copula
-        # fpath = '/atlas/u/kechoi/time-score-dre/results/iclr/mnist/hyp_interp_z_unetv4_lin_emb_copula_history_v4_lr0.001_gc1.0/eval/1010rerun_ais_x_raise_ckpt_110_output.npz'
-        # flow
-        # fpath = '/atlas/u/kechoi/time-score-dre/results/iclr/mnist/z_unet_deeper_lin_emb_flow_history_fix_act_v4_nohistory/eval/1010rerun_ais_x_raise_ckpt_69_output.npz'
-        # record = np.load(fpath)
-        # log_normalizer = torch.from_numpy(record['log_normalizer']).float().cuda()
-        # print('loaded AIS stats from {}'.format(fpath))
+        # TODO: need a better system of running AIS and doing eval
 
         for batch_id, (eval_batch, _) in enumerate(eval_ds):
           eval_batch = ((eval_batch * 255.) + torch.rand_like(eval_batch)) / 256.
@@ -680,16 +598,11 @@ def evaluate(config,
             ckpt, repeat, batch_id, total_bpd / total_n_data))
           bpd_round_id = batch_id + len(ds_bpd) * repeat
           # Save bits/dim to disk or Google Cloud Storage
-          # TODO: RESTORE
-          # if config.eval.ais:
-          #   fname = f"{config.eval.ais_method}_{config.eval.bpd_dataset}_ckpt_{ckpt}_bpd_{bpd_round_id}.npz"
-          # else:
-          #   fname = f"vanilla_{config.eval.bpd_dataset}_ckpt_{ckpt}_bpd_{bpd_round_id}.npz"
-          # with tf.io.gfile.GFile(os.path.join(eval_dir, fname), "wb") as fout:
-          #   io_buffer = io.BytesIO()
-          #   np.savez_compressed(io_buffer, total_bpd, total_n_data)
-          #   fout.write(io_buffer.getvalue())
+          # TODO: add AIS evaluation
+          fname = f"vanilla_{config.eval.bpd_dataset}_ckpt_{ckpt}_bpd_{bpd_round_id}.npz"
+          with tf.io.gfile.GFile(os.path.join(eval_dir, fname), "wb") as fout:
+            io_buffer = io.BytesIO()
+            np.savez_compressed(io_buffer, total_bpd, total_n_data)
+            fout.write(io_buffer.getvalue())
         avg_bpd = float(total_bpd) / total_n_data
         print('Completed bpd evaluation, total average bpd is: {}'.format(avg_bpd))
-
-    # TODO: no sampling atm

@@ -27,7 +27,7 @@ def main(argv):
 
   if FLAGS.mode == 'eval':
     mode = 'disabled'
-  # set up wandb
+  # TODO: set up wandb and replace names here
   wandb.init(
     project='your-project-here',
     entity='your-project-here',
@@ -50,7 +50,6 @@ def main(argv):
 
     # save config
     print(FLAGS.config)
-    # TODO: clean up flags...
     with open(os.path.join(FLAGS.workdir, 'config.txt'), 'w') as f:
       print(FLAGS.config, file=f)
 
